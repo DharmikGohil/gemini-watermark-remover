@@ -1,4 +1,4 @@
-name = "gemini-watermark-remover"
+name = "clearmark"
 compatibility_date = "2025-01-16"
 
 [assets]

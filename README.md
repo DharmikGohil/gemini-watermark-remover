@@ -1,4 +1,4 @@
-# Comply
+# Clearmark
 
 A browser-based tool that strips visible watermarks from Gemini AI-generated images. No servers, no uploads, no AI guesswork - just math.
 

@@ -102,7 +102,7 @@ const { fetch: origFetch } = unsafeWindow;
 unsafeWindow.fetch = async (...args) => {
   const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
   if (GEMINI_URL_PATTERN.test(url)) {
-    console.log('[Comply] Intercepting:', url);
+    console.log('[Clearmark] Intercepting:', url);
 
     const origUrl = replaceWithNormalSize(url);
     if (typeof args[0] === 'string') args[0] = origUrl;
@@ -119,7 +119,7 @@ unsafeWindow.fetch = async (...args) => {
         headers: response.headers
       });
     } catch (error) {
-      console.warn('[Comply] Processing failed:', error);
+      console.warn('[Clearmark] Processing failed:', error);
       return response;
     }
   }
@@ -129,14 +129,14 @@ unsafeWindow.fetch = async (...args) => {
 
 (async function init() {
   try {
-    console.log('[Comply] Initializing...');
+    console.log('[Clearmark] Initializing...');
     engine = await WatermarkEngine.create();
 
     processAllImages();
     setupMutationObserver();
 
-    console.log('[Comply] Ready');
+    console.log('[Clearmark] Ready');
   } catch (error) {
-    console.error('[Comply] Initialization failed:', error);
+    console.error('[Clearmark] Initialization failed:', error);
   }
 })();

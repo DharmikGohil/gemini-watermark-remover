@@ -1,5 +1,5 @@
 {
-  "name": "gemini-watermark-remover",
+  "name": "clearmark",
   "description": "Automatically removes watermarks from Gemini AI generated images",
   "version": "1.0.0",
   "author": "Dharmik Gohil",
