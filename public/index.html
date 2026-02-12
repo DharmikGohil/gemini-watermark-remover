@@ -6,21 +6,21 @@
   <title>Clearmark — Free Gemini AI Watermark Remover | Lossless &amp; Private</title>
   <meta name="description" content="Remove watermarks from Google Gemini AI images instantly in your browser. Free, private, lossless reverse alpha blending — no uploads, no servers.">
   <meta name="keywords" content="Clearmark, watermark remover, remove Gemini watermark, AI image editor, Google AI watermark remover, watermark cleaner tool, free AI watermark remover, reverse alpha blending, Gemini image tool">
-  <link rel="canonical" href="https://clearmark.app/">
+  <link rel="canonical" href="https://clearmark.dharmikgohil.in/">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="Clearmark — Free Gemini AI Watermark Remover">
   <meta property="og:description" content="Remove watermarks from Google Gemini AI images instantly in your browser. Free, private, lossless.">
-  <meta property="og:url" content="https://clearmark.app/">
+  <meta property="og:url" content="https://clearmark.dharmikgohil.in/">
   <meta property="og:site_name" content="Clearmark">
-  <meta property="og:image" content="https://clearmark.app/og-default.png">
+  <meta property="og:image" content="https://clearmark.dharmikgohil.in/og-default.png">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Clearmark — Free Gemini AI Watermark Remover">
   <meta name="twitter:description" content="Remove watermarks from Google Gemini AI images instantly. Free, private, lossless.">
-  <meta name="twitter:image" content="https://clearmark.app/og-default.png">
+  <meta name="twitter:image" content="https://clearmark.dharmikgohil.in/og-default.png">
 
   <!-- Structured Data -->
   <script type="application/ld+json">
@@ -32,7 +32,7 @@
     "operatingSystem": "Web Browser",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
     "description": "Free browser-based tool to remove watermarks from Gemini AI-generated images using lossless reverse alpha blending.",
-    "url": "https://clearmark.app"
+    "url": "https://clearmark.dharmikgohil.in"
   }
   </script>
   <script type="application/ld+json">
@@ -62,7 +62,7 @@
   {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": "https://clearmark.app/" }]
+    "itemListElement": [{ "@type": "ListItem", "position": 1, "name": "Home", "item": "https://clearmark.dharmikgohil.in/" }]
   }
   </script>
 
@@ -304,6 +304,33 @@
       background: var(--accent); opacity: 0.5;
     }
 
+    /* Coming Soon badge */
+    .coming-soon-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      margin-top: 18px;
+      padding: 6px 16px 6px 12px;
+      border-radius: 100px;
+      background: rgba(251, 191, 36, 0.06);
+      border: 1px dashed rgba(251, 191, 36, 0.3);
+      font-size: 11px; font-weight: 600;
+      color: var(--warn);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      position: relative;
+      cursor: default;
+      transition: all 0.3s;
+    }
+    .coming-soon-badge:hover {
+      background: rgba(251, 191, 36, 0.1);
+      border-color: rgba(251, 191, 36, 0.45);
+    }
+    .coming-soon-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--warn);
+      animation: pulse 2s ease-in-out infinite;
+      box-shadow: 0 0 6px rgba(251, 191, 36, 0.4);
+    }
+
     /* Steps - dotted connectors */
     .steps {
       max-width: 680px; margin: 40px auto 0;
@@ -496,7 +523,11 @@
       background: rgba(167,139,250,0.04);
     }
     .features-title { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; }
-    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+
+    @media (max-width: 900px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+    }
     .feature-card {
       padding: 32px; border-radius: var(--radius-lg);
       background: var(--bg-primary); border: 1px solid var(--border);
@@ -517,7 +548,17 @@
     .feature-icon-speed { background: var(--warn-dim); color: var(--warn); border-color: rgba(251,191,36,0.2); box-shadow: 0 0 16px rgba(251,191,36,0.06); }
     .feature-icon-privacy { background: rgba(96,165,250,0.08); color: var(--info); border-color: rgba(96,165,250,0.2); box-shadow: 0 0 16px rgba(96,165,250,0.06); }
     .feature-icon-free { background: var(--success-dim); color: var(--success); border-color: rgba(52,211,153,0.2); box-shadow: 0 0 16px rgba(52,211,153,0.06); }
+    .feature-icon-batch { background: rgba(251,191,36,0.08); color: var(--warn); border-color: rgba(251,191,36,0.2); box-shadow: 0 0 16px rgba(251,191,36,0.06); }
     .feature-name { font-size: 16px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.01em; }
+    .feature-name .coming-soon-tag {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      color: var(--warn); text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 2px 8px; border-radius: 100px;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      margin-left: 8px; vertical-align: middle;
+      position: relative; top: -1px;
+    }
     .feature-desc { font-size: 14px; color: var(--text-muted); line-height: 1.7; }
 
     @media (max-width: 640px) {
@@ -663,6 +704,15 @@
               <h4 class="feature-name" data-i18n="feature.free.title">Completely Free</h4>
               <p class="feature-desc" data-i18n="feature.free.desc">No usage limits, no hidden fees, ready to use</p>
             </div>
+            <div class="feature-card">
+              <div class="feature-icon feature-icon-batch">
+                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <h4 class="feature-name" data-i18n="feature.batch.title">Batch Processing <span class="coming-soon-tag">Coming Soon</span></h4>
+              <p class="feature-desc" data-i18n="feature.batch.desc">Process multiple images at once — drop a whole folder and download them all in a single click</p>
+            </div>
           </div>
         </div>
       </div>
@@ -678,6 +728,10 @@
           </div>
           <p class="upload-text" data-i18n="upload.text">Click to select or drag images here</p>
           <p class="upload-hint" data-i18n="upload.hint">Supports JPG, PNG, WebP</p>
+          <div class="coming-soon-badge" data-i18n="feature.batch.badge">
+            <span class="coming-soon-dot"></span>
+            Batch Processing — Coming Soon
+          </div>
           <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple class="hidden" />
         </div>
       </div>
