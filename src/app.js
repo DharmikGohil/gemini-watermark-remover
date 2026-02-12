@@ -3,6 +3,7 @@ import i18n from './i18n.js';
 import { loadImage, checkOriginal, getOriginalStatus, setStatusMessage, showLoading, hideLoading } from './utils.js';
 import JSZip from 'jszip';
 import mediumZoom from 'medium-zoom';
+import { inject } from '@vercel/analytics';
 
 // global state
 let engine = null;
@@ -31,6 +32,9 @@ const resetBtn = document.getElementById('resetBtn');
  */
 async function init() {
     try {
+        // Initialize Vercel Web Analytics
+        inject();
+        
         await i18n.init();
         showLoading(i18n.t('status.loading'));
 
