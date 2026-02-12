@@ -2,6 +2,7 @@ import * as esbuild from 'esbuild';
 import { cpSync, rmSync, existsSync, mkdirSync, watch } from 'node:fs';
 import { createRequire } from 'node:module';
 import { execSync } from 'child_process';
+import { generateSEOPages } from './src/seo/generate.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('./package.json');
@@ -52,6 +53,13 @@ const copyAssetsPlugin = {
         cpSync('public', 'dist', { recursive: true });
       } catch (err) {
         console.error('❌ Asset copy failed:', err);
+      }
+
+      // Generate programmatic SEO pages
+      try {
+        generateSEOPages();
+      } catch (err) {
+        console.error('❌ SEO page generation failed:', err);
       }
     });
   },
