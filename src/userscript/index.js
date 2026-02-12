@@ -62,9 +62,9 @@ async function processImage(imgElement) {
     imgElement.src = URL.createObjectURL(processedBlob);
     imgElement.dataset.watermarkProcessed = 'true';
 
-    console.log('[Comply] Processed image');
+    console.log('[Clearmark] Processed image');
   } catch (error) {
-    console.warn('[Comply] Failed to process image:', error);
+    console.warn('[Clearmark] Failed to process image:', error);
     imgElement.dataset.watermarkProcessed = 'failed';
     imgElement.src = originalSrc;
   } finally {
@@ -76,14 +76,14 @@ const processAllImages = () => {
   const images = findGeminiImages();
   if (images.length === 0) return;
 
-  console.log(`[Comply] Found ${images.length} images to process`);
+  console.log(`[Clearmark] Found ${images.length} images to process`);
   images.forEach(processImage);
 };
 
 const setupMutationObserver = () => {
   new MutationObserver(debounce(processAllImages, 100))
     .observe(document.body, { childList: true, subtree: true });
-  console.log('[Comply] MutationObserver active');
+  console.log('[Clearmark] MutationObserver active');
 };
 
 async function processImageBlob(blob) {

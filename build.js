@@ -27,7 +27,7 @@ const jsBanner = `/*!
  */`;
 
 const userscriptBanner = `// ==UserScript==
-// @name         Comply - Gemini Watermark Remover
+// @name         Clearmark - Gemini Watermark Remover
 // @namespace    https://github.com/DharmikGohil
 // @version      0.1.6
 // @description  Automatically removes watermarks from Gemini AI generated images

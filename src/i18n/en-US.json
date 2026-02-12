@@ -1,6 +1,6 @@
 {
-  "title": "Comply - Lossless Watermark Removal Tool",
-  "header.title": "Comply",
+  "title": "Clearmark - Lossless Watermark Removal Tool",
+  "header.title": "Clearmark",
   "nav.principle": "How It Works?",
   "main.title": "Gemini AI Watermark Removal",
   "main.subtitle": "Based on reverse alpha blending algorithm, pure browser-side processing, Free, Fast, and Lossless",
@@ -23,7 +23,7 @@
   "feature.privacy.desc": "Pure frontend processing, images never leave your device",
   "feature.free.title": "Completely Free",
   "feature.free.desc": "No usage limits, no hidden fees, ready to use",
-  "footer.desc": "Comply - for educational purposes only",
+  "footer.desc": "Clearmark - for educational purposes only",
   "footer.links": "Links",
   "footer.terms": "Terms of Use",
   "footer.github": "GitHub",
