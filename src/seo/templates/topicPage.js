@@ -1,6 +1,8 @@
 /**
  * Topic page template (spoke pages).
  * Generates /{category}/{slug}/index.html
+ * 
+ * Handles both seed topics (no subcategory) and factory topics (with subcategory).
  */
 
 import { baseTemplate } from './base.js';
@@ -8,39 +10,40 @@ import { generateMetaTags } from '../metadata.js';
 import {
   articleSchema, faqSchema, breadcrumbSchema, renderSchemaScripts, SITE_URL,
 } from '../schema.js';
-import { CATEGORIES, getRelatedTopics } from '../data/topics.js';
+import { CATEGORIES, SUBCATEGORIES, getRelatedTopics } from '../data/topics.js';
 
 export function renderTopicPage(topic) {
   const cat = CATEGORIES[topic.category];
+  const sub = topic.subcategory ? SUBCATEGORIES[topic.subcategory] : null;
   const canonical = `/${topic.category}/${topic.slug}/`;
 
-  // Metadata
   const metaTags = generateMetaTags({
     title: topic.title,
     description: topic.description,
     canonical,
   });
 
-  // Schema markup
+  // Breadcrumb: Home > Category > [Subcategory] > Page
+  const crumbs = [{ name: 'Home', url: '/' }, { name: cat.title, url: `/${cat.slug}/` }];
+  if (sub) crumbs.push({ name: sub.title, url: `/${sub.parent}/${sub.slug}/` });
+  crumbs.push({ name: topic.heading });
+
   const schemas = renderSchemaScripts(
     articleSchema(topic, topic.category),
     faqSchema(topic.faqs),
-    breadcrumbSchema([
-      { name: 'Home', url: '/' },
-      { name: cat.title, url: `/${cat.slug}/` },
-      { name: topic.heading },
-    ])
+    breadcrumbSchema(crumbs)
   );
 
-  // Breadcrumb HTML
   const breadcrumbHtml = `
     <nav class="bc" aria-label="Breadcrumb">
-      <a href="${SITE_URL}/">Home</a> <span>/</span>
-      <a href="${SITE_URL}/${cat.slug}/">${cat.title}</a> <span>/</span>
-      <span>${topic.heading}</span>
+      ${crumbs.map((c, i) =>
+        i < crumbs.length - 1
+          ? `<a href="${SITE_URL}${c.url}">${c.name}</a> <span>/</span>`
+          : `<span>${c.name}</span>`
+      ).join(' ')}
     </nav>`;
 
-  // Related topics (internal linking)
+  // Related topics
   const related = getRelatedTopics(topic);
   const relatedHtml = related.length > 0 ? `
     <section class="related">
@@ -67,7 +70,7 @@ export function renderTopicPage(topic) {
       `).join('')}
     </section>` : '';
 
-  // CTA back to tool
+  // CTA
   const ctaHtml = `
     <div class="cta">
       <p style="margin-bottom:16px;color:var(--text2)">Ready to remove watermarks?</p>
