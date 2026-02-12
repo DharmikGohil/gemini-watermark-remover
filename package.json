@@ -1,0 +1,26 @@
+{
+  "name": "gemini-watermark-remover",
+  "description": "Automatically removes watermarks from Gemini AI generated images",
+  "version": "1.0.0",
+  "author": "Dharmik Gohil",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DharmikGohil/gemini-watermark-remover"
+  },
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "node build.js",
+    "build": "NODE_ENV=production node build.js",
+    "serve": "npx serve dist"
+  },
+  "dependencies": {
+    "exifr": "^7.1.3",
+    "jszip": "^3.10.1",
+    "medium-zoom": "^1.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  },
+  "packageManager": "pnpm@10.11.0"
+}

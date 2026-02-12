@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comply</title>
+  <meta name="description" content="Free tool to remove watermarks from Gemini AI images - safe, private, and 100% browser-based.">
+  <meta name="keywords" content="Comply, watermark remover, remove Gemini watermark, AI image editor, Google AI watermark remover, watermark cleaner tool, free AI watermark remover" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a78bfa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l-1.9 5.8-5.8 1.9 5.8 1.9 1.9 5.8 1.9-5.8 5.8-1.9-5.8-1.9z'/%3E%3C/svg%3E">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary: #09090b;
+      --bg-secondary: #111113;
+      --bg-tertiary: #18181b;
+      --bg-elevated: #1f1f23;
+      --bg-glass: rgba(17, 17, 19, 0.7);
+      --border: rgba(255, 255, 255, 0.06);
+      --border-hover: rgba(255, 255, 255, 0.12);
+      --border-active: rgba(167, 139, 250, 0.3);
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #52525b;
+      --accent: #a78bfa;
+      --accent-light: #c4b5fd;
+      --accent-dim: rgba(167, 139, 250, 0.08);
+      --accent-glow: rgba(167, 139, 250, 0.15);
+      --success: #34d399;
+      --success-dim: rgba(52, 211, 153, 0.1);
+      --warn: #fbbf24;
+      --warn-dim: rgba(251, 191, 36, 0.1);
+      --err: #f87171;
+      --info: #60a5fa;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+      --shadow-glow: 0 0 40px rgba(167, 139, 250, 0.08);
+    }
+
+    body {
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    body.loading { opacity: 0; }
+
+    ::selection { background: var(--accent); color: #000; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+    a { color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+    a:hover { color: var(--text-primary); }
+
+    /* Animations */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes blurReveal { from { opacity: 0; filter: blur(12px); } to { opacity: 1; filter: blur(0); } }
+
+    .animate-blur-reveal { animation: blurReveal 0.8s ease-out both; }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+    .animate-fade-up { animation: fadeUp 0.5s ease-out both; }
+    .animate-fade-in { animation: fadeIn 0.4s ease-out both; }
+
+    /* Background effects - dot pattern */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+      background-size: 24px 24px;
+      mask-image: radial-gradient(ellipse 70% 50% at 50% 0%, black 20%, transparent 70%);
+    }
+
+    .bg-glow {
+      position: fixed; top: -300px; left: 50%; transform: translateX(-50%);
+      width: 1000px; height: 700px; z-index: 0; pointer-events: none;
+      background: radial-gradient(ellipse, rgba(167,139,250,0.08) 0%, rgba(96,165,250,0.03) 40%, transparent 70%);
+    }
+
+    /* Header */
+    .site-header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(9, 9, 11, 0.8);
+      backdrop-filter: blur(16px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      height: 60px;
+    }
+    .header-inner {
+      max-width: 1200px; margin: 0 auto;
+      padding: 0 24px; height: 100%;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 34px; height: 34px; border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, rgba(167,139,250,0.12), rgba(167,139,250,0.2));
+      border: 1px solid rgba(167,139,250,0.25);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent);
+      box-shadow: 0 0 12px rgba(167,139,250,0.1);
+      transition: all 0.2s;
+    }
+    .logo:hover .logo-icon { box-shadow: 0 0 20px rgba(167,139,250,0.2); }
+    .logo-icon svg { width: 18px; height: 18px; }
+    .logo-text { font-size: 16px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.03em; }
+
+    .nav { display: flex; align-items: center; gap: 6px; }
+    .nav-link {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: var(--radius-sm);
+      font-size: 13px; color: var(--text-secondary);
+      transition: all 0.2s;
+    }
+    .nav-link:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+    .nav-link svg { flex-shrink: 0; }
+
+    /* Hero */
+    .hero {
+      padding: 80px 24px 60px;
+      text-align: center;
+      position: relative;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 20px 8px 16px;
+      border-radius: 100px;
+      background: rgba(167,139,250,0.08);
+      border: 1px solid rgba(167,139,250,0.2);
+      font-size: 12px; font-weight: 600; color: var(--accent-light);
+      margin-bottom: 28px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      box-shadow: 0 0 20px rgba(167,139,250,0.06);
+    }
+    .hero-badge svg { color: var(--accent); animation: pulse 2s ease-in-out infinite; }
+    .hero-title {
+      font-size: clamp(38px, 6vw, 68px);
+      font-weight: 800; letter-spacing: -0.04em;
+      line-height: 1.05;
+      background: linear-gradient(to bottom, #fff 30%, var(--accent-light) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 24px;
+      max-width: 750px; margin-left: auto; margin-right: auto;
+      position: relative;
+    }
+    .hero-title::after {
+      content: ''; position: absolute;
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 80%; height: 100%;
+      background: radial-gradient(ellipse, rgba(167,139,250,0.1) 0%, transparent 70%);
+      pointer-events: none; z-index: -1;
+      filter: blur(40px);
+    }
+    .hero-sub {
+      font-size: 16px; color: var(--text-secondary);
+      max-width: 520px; margin: 0 auto 52px;
+      line-height: 1.7;
+    }
+
+    /* Upload - dotted border style */
+    .upload-wrapper {
+      max-width: 640px; margin: 0 auto;
+      position: relative;
+    }
+    .upload-zone {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 220px; padding: 48px 24px;
+      border-radius: var(--radius-xl);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: var(--bg-secondary);
+      border: 2.5px dashed rgba(167,139,250,0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-zone::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 100%, rgba(167,139,250,0.06), transparent 60%);
+      pointer-events: none; transition: opacity 0.3s;
+    }
+    .upload-zone::after {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(167,139,250,0.03), transparent 70%);
+      pointer-events: none; opacity: 0; transition: opacity 0.3s;
+    }
+    .upload-zone:hover {
+      border-color: rgba(167,139,250,0.5);
+      background: rgba(167,139,250,0.03);
+      box-shadow: 0 0 40px rgba(167,139,250,0.08), inset 0 0 40px rgba(167,139,250,0.03);
+    }
+    .upload-zone:hover::after { opacity: 1; }
+    .upload-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(167,139,250,0.06);
+      box-shadow: 0 0 60px rgba(167,139,250,0.15), inset 0 0 60px rgba(167,139,250,0.05);
+      transform: scale(1.01);
+    }
+    .upload-ring {
+      width: 64px; height: 64px; margin-bottom: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(167,139,250,0.1), rgba(167,139,250,0.05));
+      border: 1.5px solid rgba(167,139,250,0.25);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent);
+      transition: all 0.3s;
+      box-shadow: 0 0 20px rgba(167,139,250,0.08);
+    }
+    .upload-zone:hover .upload-ring {
+      border-color: rgba(167,139,250,0.5);
+      background: rgba(167,139,250,0.12);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(167,139,250,0.15);
+    }
+    .upload-text { font-size: 15px; color: var(--text-primary); margin-bottom: 6px; position: relative; font-weight: 500; }
+    .upload-hint {
+      font-size: 12px; color: var(--text-muted); position: relative;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .upload-hint::before {
+      content: ''; width: 4px; height: 4px; border-radius: 50%;
+      background: var(--accent); opacity: 0.5;
+    }
+
+    /* Steps - dotted connectors */
+    .steps {
+      max-width: 680px; margin: 40px auto 0;
+      display: flex; align-items: center; justify-content: center; gap: 0;
+    }
+    .step {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 20px; border-radius: var(--radius-md);
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      transition: all 0.25s;
+      position: relative;
+    }
+    .step:hover { border-color: var(--border-hover); background: var(--bg-tertiary); }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), rgba(167,139,250,0.7));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #0f0f0f;
+      flex-shrink: 0;
+      box-shadow: 0 0 12px rgba(167,139,250,0.2);
+    }
+    .step-label { font-size: 13px; color: var(--text-secondary); white-space: nowrap; font-weight: 500; }
+    .step-divider {
+      width: 32px; display: flex; align-items: center; justify-content: center;
+      position: relative; flex-shrink: 0;
+    }
+    .step-divider::before {
+      content: ''; width: 100%; height: 0;
+      border-top: 2px dotted rgba(167,139,250,0.3);
+    }
+    .step-divider svg { display: none; }
+
+    @media (max-width: 640px) {
+      .steps { flex-direction: column; gap: 0; }
+      .step { width: 100%; }
+      .step-divider { width: auto; height: 20px; }
+      .step-divider::before { width: 0; height: 100%; border-top: none; border-left: 2px dotted rgba(167,139,250,0.3); }
+      .nav .hide-mobile { display: none; }
+    }
+
+    /* Preview sections */
+    .preview-section { max-width: 1200px; margin: 0 auto; padding: 0 24px 80px; }
+    .preview-layout { display: flex; flex-direction: column; gap: 20px; }
+    .preview-main {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+      min-width: 0;
+    }
+    .preview-sidebar { width: 100%; }
+
+    .card {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.25s;
+    }
+    .card:hover { border-color: var(--border-hover); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+    .card-header {
+      padding: 14px 20px; border-bottom: 1px dashed var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(255,255,255,0.015);
+    }
+    .card-title {
+      font-size: 13px; font-weight: 600; color: var(--text-secondary);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot-red { background: var(--err); box-shadow: 0 0 8px rgba(248,113,113,0.4); }
+    .status-dot-green { background: var(--success); box-shadow: 0 0 8px rgba(52,211,153,0.4); }
+    .card-meta { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .card-body {
+      min-height: 200px; padding: 16px;
+      background:
+        repeating-conic-gradient(rgba(255,255,255,0.02) 0% 25%, transparent 0% 50%) 50% / 20px 20px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .card-body img { max-width: 100%; max-height: 100%; border-radius: var(--radius-sm); display: block; }
+
+    .card-result { border-color: rgba(52,211,153,0.25); }
+    .card-result .card-header { background: rgba(52,211,153,0.04); border-bottom-color: rgba(52,211,153,0.15); }
+    .card-result .card-title { color: var(--success); }
+
+    @media (min-width: 768px) {
+      .card-body { min-height: 440px; }
+    }
+
+    /* Sidebar panel - horizontal layout below images */
+    .panel {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 20px 24px;
+      box-shadow: var(--shadow-sm);
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .panel-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-right: auto; }
+
+    .btn {
+      width: auto; padding: 11px 22px; border-radius: var(--radius-md);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.2s; border: none; font-family: inherit;
+    }
+    .btn svg { flex-shrink: 0; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(167,139,250,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    .btn-primary:hover { background: linear-gradient(135deg, var(--accent-light), var(--accent)); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(167,139,250,0.35); }
+    .btn-primary:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(167,139,250,0.2); }
+    .btn-ghost {
+      background: transparent; color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--border-hover); color: var(--text-primary); background: rgba(255,255,255,0.02); }
+    .btn-compact { padding: 9px 20px; }
+
+    .status-msg { font-size: 13px; color: var(--text-muted); min-height: 20px; line-height: 1.5; flex-basis: 100%; }
+
+    @media (max-width: 768px) {
+      .preview-main { grid-template-columns: 1fr; }
+      .panel { flex-direction: column; align-items: stretch; }
+      .panel .btn { width: 100%; }
+    }
+
+    /* Multi preview */
+    .multi-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px;
+    }
+    .multi-title { font-size: 16px; font-weight: 700; }
+
+    .image-card {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: var(--radius-md); overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .image-card:hover { border-color: var(--border-hover); }
+    .image-card + .image-card { margin-top: 10px; }
+    .image-card-inner { display: flex; align-items: center; }
+    .image-card-thumb {
+      width: 80px; height: 80px; flex-shrink: 0;
+      background: var(--bg-tertiary); padding: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .image-card-thumb img { max-width: 100%; max-height: 100%; border-radius: 4px; }
+    .image-card-info { flex: 1; padding: 12px 16px; min-width: 0; }
+    .image-card-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+    .image-card-status { font-size: 12px; color: var(--text-muted); }
+    .image-card-actions { padding: 12px 16px; flex-shrink: 0; }
+    .image-card-actions .btn-sm {
+      padding: 7px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6); color: #fff;
+      border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;
+      transition: all 0.2s; font-family: inherit;
+      box-shadow: 0 2px 8px rgba(167,139,250,0.2);
+    }
+    .image-card-actions .btn-sm:hover { box-shadow: 0 4px 16px rgba(167,139,250,0.3); transform: translateY(-1px); }
+
+    @media (min-width: 768px) {
+      .image-card-thumb { width: 140px; height: 100px; }
+    }
+
+    /* Features */
+    .features, .features-inline {
+      padding: 60px 24px;
+      position: relative;
+    }
+    .features {
+      border-top: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+    .features-inline {
+      max-width: 1200px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .features::before {
+      content: ''; position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+      width: 200px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+    .features-inner { max-width: 1200px; margin: 0 auto; }
+    .features-header { text-align: center; margin-bottom: 52px; }
+    .features-label {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 12px;
+      padding: 4px 14px; border-radius: 100px;
+      border: 1px dashed rgba(167,139,250,0.25);
+      background: rgba(167,139,250,0.04);
+    }
+    .features-title { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; }
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .feature-card {
+      padding: 32px; border-radius: var(--radius-lg);
+      background: var(--bg-primary); border: 1px solid var(--border);
+      transition: all 0.3s;
+      position: relative; overflow: hidden;
+    }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 24px; right: 24px; height: 0;
+      border-top: 1px dashed rgba(255,255,255,0.06);
+      transition: all 0.3s;
+    }
+    .feature-card:hover { border-color: var(--border-hover); }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px; border: 1px solid;
+    }
+    .feature-icon-speed { background: var(--warn-dim); color: var(--warn); border-color: rgba(251,191,36,0.2); box-shadow: 0 0 16px rgba(251,191,36,0.06); }
+    .feature-icon-privacy { background: rgba(96,165,250,0.08); color: var(--info); border-color: rgba(96,165,250,0.2); box-shadow: 0 0 16px rgba(96,165,250,0.06); }
+    .feature-icon-free { background: var(--success-dim); color: var(--success); border-color: rgba(52,211,153,0.2); box-shadow: 0 0 16px rgba(52,211,153,0.06); }
+    .feature-name { font-size: 16px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.01em; }
+    .feature-desc { font-size: 14px; color: var(--text-muted); line-height: 1.7; }
+
+    @media (max-width: 640px) {
+      .features-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Footer */
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: 48px 24px 32px;
+      background: var(--bg-primary);
+    }
+    .footer-inner { max-width: 1200px; margin: 0 auto; }
+    .footer-grid {
+      display: grid; grid-template-columns: 2fr 1fr 1fr;
+      gap: 40px; margin-bottom: 40px;
+    }
+    .footer-brand {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 16px; font-weight: 700; margin-bottom: 10px;
+    }
+    .footer-desc { font-size: 13px; color: var(--text-muted); line-height: 1.7; max-width: 320px; }
+    .footer-heading {
+      font-size: 11px; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px;
+    }
+    .footer-list { list-style: none; }
+    .footer-list li + li { margin-top: 10px; }
+    .footer-list a { font-size: 13px; color: var(--text-muted); }
+    .footer-list a:hover { color: var(--text-primary); }
+    .footer-bottom {
+      border-top: 1px dashed var(--border); padding-top: 24px;
+      text-align: center; font-size: 12px; color: var(--text-muted);
+    }
+    .footer-bottom a { color: var(--text-secondary); }
+    .footer-bottom a:hover { color: var(--accent); }
+
+    @media (max-width: 640px) {
+      .footer-grid { grid-template-columns: 1fr; gap: 28px; }
+    }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed; inset: 0; z-index: 60;
+      background: rgba(9, 9, 11, 0.9);
+      backdrop-filter: blur(12px);
+      display: none; align-items: center; justify-content: center;
+    }
+    .loading-content { display: flex; flex-direction: column; align-items: center; }
+    .loading-spinner {
+      width: 36px; height: 36px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-bottom: 16px;
+    }
+    .loading-overlay p { font-size: 13px; color: var(--text-secondary); }
+
+    /* Medium zoom overrides */
+    .medium-zoom-overlay, .medium-zoom-image--opened { z-index: 999; }
+    .medium-zoom-overlay { backdrop-filter: blur(12px); }
+
+    /* Utility */
+    .text-warn { color: var(--warn) !important; }
+    .text-success { color: var(--success) !important; }
+    .hidden { display: none !important; }
+    .scroll-mt { scroll-margin-top: 80px; }
+    .btn-sm { /* used in multi-image JS */
+      padding: 7px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6); color: #fff;
+      border: none; cursor: pointer; font-family: inherit; transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(167,139,250,0.2);
+    }
+    .btn-sm:hover { box-shadow: 0 4px 16px rgba(167,139,250,0.3); transform: translateY(-1px); }
+</style>
+</head>
+<body class="loading">
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="./" class="logo" title="Comply">
+        <div class="logo-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 3-1.9 5.8-5.8 1.9 5.8 1.9 1.9 5.8 1.9-5.8 5.8-1.9-5.8-1.9Z"/>
+          </svg>
+        </div>
+        <span class="logo-text">Comply</span>
+      </a>
+      <nav class="nav">
+        <a href="https://allenkuo.medium.com/removing-gemini-ai-watermarks-a-deep-dive-into-reverse-alpha-blending-bbbd83af2a3f" target="_blank" rel="noopener noreferrer" class="nav-link hide-mobile" data-i18n="nav.principle">How It Works?</a>
+        <a href="https://github.com/DharmikGohil/gemini-watermark-remover" target="_blank" rel="noopener noreferrer" class="nav-link">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="flex:1;position:relative;z-index:1">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-badge animate-blur-reveal" style="animation-delay:0.1s">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8-5.8 1.9 5.8 1.9 1.9 5.8 1.9-5.8 5.8-1.9-5.8-1.9Z"/></svg>
+        Free &amp; Open Source
+      </div>
+      <h1 class="hero-title animate-blur-reveal" style="animation-delay:0.25s" data-i18n="main.title">Gemini AI Watermark Removal</h1>
+      <p class="hero-sub animate-blur-reveal" style="animation-delay:0.4s" data-i18n="main.subtitle">Based on reverse alpha blending algorithm, pure browser-side processing, Free, Fast, and Lossless</p>
+
+      <!-- Features (inline) -->
+      <div class="features-inline">
+        <div class="features-inner">
+          <div class="features-header">
+            <span class="features-label">Why Comply?</span>
+            <h3 class="features-title" data-i18n="feature.title">Features</h3>
+          </div>
+          <div class="features-grid">
+            <div class="feature-card">
+              <div class="feature-icon feature-icon-speed">
+                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              </div>
+              <h4 class="feature-name" data-i18n="feature.speed.title">Lightning Fast</h4>
+              <p class="feature-desc" data-i18n="feature.speed.desc">Based on modern browser technologies, millisecond response, no waiting queue</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon feature-icon-privacy">
+                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              </div>
+              <h4 class="feature-name" data-i18n="feature.privacy.title">Privacy First</h4>
+              <p class="feature-desc" data-i18n="feature.privacy.desc">Pure frontend processing, images never leave your device</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon feature-icon-free">
+                <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z M6 6l12 12"/>
+                </svg>
+              </div>
+              <h4 class="feature-name" data-i18n="feature.free.title">Completely Free</h4>
+              <p class="feature-desc" data-i18n="feature.free.desc">No usage limits, no hidden fees, ready to use</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upload zone -->
+      <div class="upload-wrapper">
+        <div id="uploadArea" class="upload-zone">
+          <div class="upload-ring">
+            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 16V4m0 0L8 8m4-4l4 4"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 15v4a2 2 0 002 2h14a2 2 0 002-2v-4"/>
+            </svg>
+          </div>
+          <p class="upload-text" data-i18n="upload.text">Click to select or drag images here</p>
+          <p class="upload-hint" data-i18n="upload.hint">Supports JPG, PNG, WebP</p>
+          <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple class="hidden" />
+        </div>
+      </div>
+
+      <!-- Steps -->
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <span class="step-label" data-i18n="step.1">Select Original Image</span>
+        </div>
+        <div class="step-divider">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <span class="step-label" data-i18n="step.2">Auto Processing</span>
+        </div>
+        <div class="step-divider">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <span class="step-label" data-i18n="step.3">Save Clean Image</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Single image preview -->
+    <section id="singlePreview" class="preview-section" style="display:none">
+      <div class="preview-layout">
+        <div class="preview-main">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <span class="status-dot status-dot-red"></span>
+                <span data-i18n="preview.original">Original Preview</span>
+              </h3>
+              <span id="originalInfo" class="card-meta"></span>
+            </div>
+            <div class="card-body">
+              <img id="originalImage" data-zoomable alt="Original image preview" />
+            </div>
+          </div>
+
+          <div id="processedSection" class="card card-result scroll-mt" style="display:none">
+            <div class="card-header">
+              <h3 class="card-title">
+                <span class="status-dot status-dot-green"></span>
+                <span data-i18n="preview.result">Processed Result</span>
+              </h3>
+              <span id="processedInfo" class="card-meta"></span>
+            </div>
+            <div class="card-body">
+              <img id="processedImage" data-zoomable alt="Processed image result" />
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-sidebar">
+          <div class="panel">
+            <h4 class="panel-title" data-i18n="panel.title">Control Panel</h4>
+            <button id="downloadBtn" class="btn btn-primary" style="display:none">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <span data-i18n="btn.download">Download</span>
+            </button>
+            <button id="resetBtn" class="btn btn-ghost">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span data-i18n="btn.reset">Reset / Change Image</span>
+            </button>
+            <div id="statusMessage" class="status-msg"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <style>
+      /* Widen preview section for side-by-side layout */
+      #singlePreview { max-width: 1400px; }
+    </style>
+
+    <!-- Multi image preview -->
+    <section id="multiPreview" class="preview-section scroll-mt" style="display:none">
+      <div class="multi-header">
+        <h3 class="multi-title"><span id="progressText">Progress: 0/0</span></h3>
+        <button id="downloadAllBtn" class="btn btn-primary btn-compact" style="display:none">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span data-i18n="btn.downloadAll">Download All</span>
+        </button>
+      </div>
+      <div id="imageList"></div>
+    </section>
+
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8-5.8 1.9 5.8 1.9 1.9 5.8 1.9-5.8 5.8-1.9-5.8-1.9Z"/></svg>
+            <span data-i18n="header.title">Comply</span>
+          </div>
+          <p class="footer-desc" data-i18n="footer.desc">Comply - for educational purposes only</p>
+        </div>
+        <div>
+          <h6 class="footer-heading" data-i18n="footer.links">Links</h6>
+          <ul class="footer-list">
+            <li><a href="https://github.com/DharmikGohil/gemini-watermark-remover" target="_blank" rel="noopener noreferrer" data-i18n="footer.github">GitHub</a></li>
+          </ul>
+        </div>
+        <div>
+          <h6 class="footer-heading" data-i18n="footer.tech">Technology</h6>
+          <ul class="footer-list">
+            <li><a href="https://allenkuo.medium.com/removing-gemini-ai-watermarks-a-deep-dive-into-reverse-alpha-blending-bbbd83af2a3f" target="_blank" rel="noopener noreferrer" data-i18n="nav.principle">How It Works?</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; <span id="copyrightYear"></span> <a href="https://www.x.com/dharmikgohil_/" target="_blank" rel="noopener noreferrer">Dharmik Gohil</a>. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p data-i18n="loading.text">Processing...</p>
+    </div>
+  </div>
+
+  <script>document.getElementById('copyrightYear').textContent=new Date().getFullYear();</script>
+  <script src="app.js"></script>
+</body>
+</html>
