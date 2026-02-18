@@ -5,6 +5,7 @@
 
 import { calculateAlphaMap } from './alphaMap.js';
 import { removeWatermark } from './blendModes.js';
+import { findWatermark, refineMatch } from './templateMatch.js';
 import BG_48_PATH from '../assets/bg_48.png';
 import BG_96_PATH from '../assets/bg_96.png';
 
@@ -56,8 +57,9 @@ export function calculateWatermarkPosition(imageWidth, imageHeight, config) {
  * Coordinate watermark detection, alpha map calculation, and removal operations
  */
 export class WatermarkEngine {
-    constructor(bgCaptures) {
+    constructor(bgCaptures, templateDataMap) {
         this.bgCaptures = bgCaptures;
+        this.templateDataMap = templateDataMap; // { 48: ImageData, 96: ImageData }
         this.alphaMaps = {};
     }
 
@@ -78,7 +80,18 @@ export class WatermarkEngine {
             })
         ]);
 
-        return new WatermarkEngine({ bg48, bg96 });
+        // Pre-extract ImageData for template matching
+        const templateDataMap = {};
+        for (const [size, img] of [[48, bg48], [96, bg96]]) {
+            const c = document.createElement('canvas');
+            c.width = size;
+            c.height = size;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            templateDataMap[size] = ctx.getImageData(0, 0, size, size);
+        }
+
+        return new WatermarkEngine({ bg48, bg96 }, templateDataMap);
     }
 
     /**
@@ -114,53 +127,116 @@ export class WatermarkEngine {
     }
 
     /**
-     * Remove watermark from image based on watermark size
+     * Detect watermark position(s) using template matching, with fallback to fixed position.
+     * @param {ImageData} imageData - Full image data
+     * @returns {{positions: Array<{x,y,width,height,score}>, logoSize: number, method: string}}
+     */
+    detectWatermarkPositions(imageData) {
+        const config = detectWatermarkConfig(imageData.width, imageData.height);
+        const primarySize = config.logoSize;
+        const secondarySize = primarySize === 48 ? 96 : 48;
+
+        // Try primary size first, then secondary
+        for (const size of [primarySize, secondarySize]) {
+            const tplData = this.templateDataMap[size];
+            const sizeConfig = size === primarySize ? config : detectWatermarkConfig(imageData.width, imageData.height);
+            const expectedPos = calculateWatermarkPosition(imageData.width, imageData.height, {
+                logoSize: size,
+                marginRight: size === 96 ? 64 : 32,
+                marginBottom: size === 96 ? 64 : 32
+            });
+
+            const matches = findWatermark(imageData, tplData, expectedPos, {
+                searchRadius: size,  // search within 1 watermark-width of expected position
+                step: 2,
+                threshold: 0.7
+            });
+
+            if (matches.length > 0) {
+                const m = matches[0];
+                const r = refineMatch(imageData, tplData, m.x, m.y, 4);
+                return {
+                    positions: [{ x: r.x, y: r.y, width: size, height: size, score: r.score }],
+                    logoSize: size,
+                    method: 'template'
+                };
+            }
+        }
+
+        // Fallback: use fixed position calculation
+        const fallbackPos = calculateWatermarkPosition(imageData.width, imageData.height, config);
+        return {
+            positions: [{ ...fallbackPos, score: 0 }],
+            logoSize: config.logoSize,
+            method: 'fixed'
+        };
+    }
+
+    /**
+     * Remove watermark from image using template matching detection
      * @param {HTMLImageElement|HTMLCanvasElement} image - Input image
      * @returns {Promise<HTMLCanvasElement>} Processed canvas
      */
     async removeWatermarkFromImage(image) {
-        // Create canvas to process image
         const canvas = document.createElement('canvas');
         canvas.width = image.width;
         canvas.height = image.height;
         const ctx = canvas.getContext('2d');
-
-        // Draw original image onto canvas
         ctx.drawImage(image, 0, 0);
 
-        // Get image data
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-        // Detect watermark configuration
-        const config = detectWatermarkConfig(canvas.width, canvas.height);
-        const position = calculateWatermarkPosition(canvas.width, canvas.height, config);
+        // Detect watermark position(s) via template matching
+        const detection = this.detectWatermarkPositions(imageData);
+        const alphaMap = await this.getAlphaMap(detection.logoSize);
 
-        // Get alpha map for watermark size
-        const alphaMap = await this.getAlphaMap(config.logoSize);
+        // Remove watermark at each detected position
+        for (const pos of detection.positions) {
+            removeWatermark(imageData, alphaMap, pos);
+        }
 
-        // Remove watermark from image data
-        removeWatermark(imageData, alphaMap, position);
-
-        // Write processed image data back to canvas
         ctx.putImageData(imageData, 0, 0);
+
+        // Store last detection info for UI display
+        this._lastDetection = detection;
 
         return canvas;
     }
 
     /**
-     * Get watermark information (for display)
+     * Get watermark information (for display).
+     * If template matching was just run, returns the detected info.
+     * Otherwise falls back to the fixed-position estimate.
+     *
      * @param {number} imageWidth - Image width
      * @param {number} imageHeight - Image height
-     * @returns {Object} Watermark information {size, position, config}
+     * @returns {Object} Watermark information
      */
     getWatermarkInfo(imageWidth, imageHeight) {
+        // If we have fresh detection results, use them
+        if (this._lastDetection) {
+            const det = this._lastDetection;
+            const primary = det.positions[0];
+            return {
+                size: det.logoSize,
+                position: primary,
+                config: detectWatermarkConfig(imageWidth, imageHeight),
+                method: det.method,
+                matchCount: det.positions.length,
+                score: primary.score
+            };
+        }
+
         const config = detectWatermarkConfig(imageWidth, imageHeight);
         const position = calculateWatermarkPosition(imageWidth, imageHeight, config);
 
         return {
             size: config.logoSize,
             position: position,
-            config: config
+            config: config,
+            method: 'fixed',
+            matchCount: 1,
+            score: 0
         };
     }
 }

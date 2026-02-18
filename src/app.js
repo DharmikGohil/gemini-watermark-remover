@@ -141,14 +141,17 @@ async function processSingle(item) {
 
         originalImage.src = img.src;
 
+        const result = await engine.removeWatermarkFromImage(img);
+
+        // Get watermark info after processing (uses template match results)
         const watermarkInfo = engine.getWatermarkInfo(img.width, img.height);
         originalInfo.innerHTML = `
             <p>${i18n.t('info.size')}: ${img.width}×${img.height}</p>
             <p>${i18n.t('info.watermark')}: ${watermarkInfo.size}×${watermarkInfo.size}</p>
             <p>${i18n.t('info.position')}: (${watermarkInfo.position.x},${watermarkInfo.position.y})</p>
+            <p>Detection: ${watermarkInfo.method}${watermarkInfo.matchCount > 1 ? ` (${watermarkInfo.matchCount} found)` : ''}${watermarkInfo.score > 0 ? ` — score: ${watermarkInfo.score.toFixed(2)}` : ''}</p>
         `;
 
-        const result = await engine.removeWatermarkFromImage(img);
         const blob = await new Promise(resolve => result.toBlob(resolve, 'image/png'));
         item.processedBlob = blob;
 
