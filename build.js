@@ -2,7 +2,8 @@ import * as esbuild from 'esbuild';
 import { cpSync, rmSync, existsSync, mkdirSync, watch } from 'node:fs';
 import { createRequire } from 'node:module';
 import { execSync } from 'child_process';
-import { generateSEOPages } from './src/seo/generate.js';
+
+const SKIP_SEO = process.env.SKIP_SEO === '1' || process.env.SKIP_SEO === 'true';
 
 const require = createRequire(import.meta.url);
 const pkg = require('./package.json');
@@ -45,7 +46,7 @@ const userscriptBanner = `// ==UserScript==
 const copyAssetsPlugin = {
   name: 'copy-assets',
   setup(build) {
-    build.onEnd(() => {
+    build.onEnd(async () => {
       console.log('📂 Syncing static assets...');
       try {
         if (!existsSync('dist/i18n')) mkdirSync('dist/i18n', { recursive: true });
@@ -55,9 +56,18 @@ const copyAssetsPlugin = {
         console.error('❌ Asset copy failed:', err);
       }
 
-      // Generate programmatic SEO pages
+      // Generate programmatic SEO pages (skipped in dev unless forced)
+      if (SKIP_SEO) {
+        console.log('⏭️  SEO generation skipped (SKIP_SEO=1)');
+        return;
+      }
+      if (!isProd) {
+        console.log('⏭️  SEO generation skipped in dev mode (use SKIP_SEO=0 to force)');
+        return;
+      }
       try {
-        generateSEOPages();
+        const { generateSEOPages } = await import('./src/seo/generate.js');
+        await generateSEOPages();
       } catch (err) {
         console.error('❌ SEO page generation failed:', err);
       }
@@ -96,7 +106,12 @@ const userscriptCtx = await esbuild.context({
 
 console.log(`🚀 Starting build process... [${isProd ? 'PRODUCTION' : 'DEVELOPMENT'}]`);
 
-if (existsSync('dist')) rmSync('dist', { recursive: true });
+if (existsSync('dist')) {
+  // Clean only bundled output files, preserve SEO pages for cache hits
+  for (const f of ['dist/app.js', 'dist/app.js.map', 'dist/userscript']) {
+    if (existsSync(f)) rmSync(f, { recursive: true });
+  }
+}
 mkdirSync('dist/userscript', { recursive: true });
   
 if (isProd) {

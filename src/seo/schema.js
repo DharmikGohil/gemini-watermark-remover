@@ -3,7 +3,7 @@
  * Produces schema.org markup for each page type.
  */
 
-const SITE_URL = 'https://clearmark.dharmikgohil.in';
+const SITE_URL = 'https://chemassureglobal.com';
 const SITE_NAME = 'Clearmark';
 const LOGO_URL = `${SITE_URL}/logo.svg`;
 

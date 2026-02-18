@@ -12,6 +12,8 @@
   "scripts": {
     "dev": "node build.js",
     "build": "NODE_ENV=production node build.js",
+    "build:no-seo": "SKIP_SEO=1 NODE_ENV=production node build.js",
+    "seo": "node src/seo/generate.js",
     "serve": "npx serve dist"
   },
   "dependencies": {

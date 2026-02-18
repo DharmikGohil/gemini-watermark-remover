@@ -9,11 +9,17 @@
  *   - Sitemap index with chunked sitemaps (50k URLs each)
  *   - robots.txt, 404.html
  * 
- * Performance: streams writes, pre-computes CSS once, uses Maps for lookups.
+ * Performance:
+ *   - Async writes with controlled concurrency
+ *   - Content hash cache for incremental builds (skip unchanged pages)
+ *   - Pre-computed shared HTML fragments
+ *   - Skipped entirely in dev mode
  */
 
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFile, mkdir, readFile } from 'node:fs/promises';
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { createHash } from 'node:crypto';
 import { TOPICS, CATEGORIES, SUBCATEGORIES, getTopicsBySubcategory } from './data/topics.js';
 import { renderTopicPage } from './templates/topicPage.js';
 import { renderHubPage } from './templates/hubPage.js';
@@ -24,9 +30,53 @@ import { validateTopics } from './validate.js';
 
 const DIST = join(process.cwd(), 'dist');
 const SITEMAP_LIMIT = 50000;
+const CACHE_FILE = join(process.cwd(), '.seo-cache.json');
+const WRITE_CONCURRENCY = 200;
 
-// Cache created dirs to avoid redundant existsSync calls at scale
+// ─── Cache ───────────────────────────────────────────────────────────
+
+function loadCache() {
+  try {
+    return JSON.parse(readFileSync(CACHE_FILE, 'utf-8'));
+  } catch {
+    return {};
+  }
+}
+
+function saveCache(cache) {
+  writeFileSync(CACHE_FILE, JSON.stringify(cache), 'utf-8');
+}
+
+function hashContent(str) {
+  return createHash('md5').update(str).digest('hex');
+}
+
+// ─── Async I/O helpers ───────────────────────────────────────────────
+
 const createdDirs = new Set();
+
+async function ensureDirAsync(dir) {
+  if (createdDirs.has(dir)) return;
+  await mkdir(dir, { recursive: true });
+  createdDirs.add(dir);
+}
+
+async function writePageAsync(filePath, html) {
+  await ensureDirAsync(dirname(filePath));
+  await writeFile(filePath, html, 'utf-8');
+}
+
+/**
+ * Process items in batches with controlled concurrency.
+ */
+async function processInBatches(items, concurrency, fn) {
+  for (let i = 0; i < items.length; i += concurrency) {
+    await Promise.all(items.slice(i, i + concurrency).map(fn));
+  }
+}
+
+// ─── Sync fallback for small writes ──────────────────────────────────
+
 function ensureDir(dir) {
   if (createdDirs.has(dir)) return;
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
@@ -38,21 +88,27 @@ function writePage(filePath, html) {
   writeFileSync(filePath, html, 'utf-8');
 }
 
-export function generateSEOPages() {
+// ─── Main generator ──────────────────────────────────────────────────
+
+export async function generateSEOPages() {
   const t0 = Date.now();
 
   // Validate first
   validateTopics();
 
+  const oldCache = loadCache();
+  const newCache = {};
   let pageCount = 0;
+  let skipped = 0;
 
-  // 1. Top-level hub pages
+  // 1. Top-level hub pages (sync — only 3)
   for (const cat of Object.values(CATEGORIES)) {
-    writePage(join(DIST, cat.slug, 'index.html'), renderHubPage(cat));
+    const html = renderHubPage(cat);
+    writePage(join(DIST, cat.slug, 'index.html'), html);
     pageCount++;
   }
 
-  // 2. Subcategory hub pages
+  // 2. Subcategory hub pages (sync — ~12)
   for (const sub of Object.values(SUBCATEGORIES)) {
     const topics = getTopicsBySubcategory(sub.slug);
     if (topics.length > 0) {
@@ -64,22 +120,42 @@ export function generateSEOPages() {
     }
   }
 
-  // 3. Spoke pages (the bulk — 100k+)
-  const batchSize = 5000;
-  for (let i = 0; i < TOPICS.length; i += batchSize) {
-    const batch = TOPICS.slice(i, i + batchSize);
-    for (const topic of batch) {
-      writePage(
-        join(DIST, topic.category, topic.slug, 'index.html'),
-        renderTopicPage(topic)
-      );
+  // 3. Spoke pages (the bulk — 100k+) — async with cache
+  const writeQueue = [];
+
+  for (const topic of TOPICS) {
+    const filePath = join(DIST, topic.category, topic.slug, 'index.html');
+    // Build a lightweight cache key from the topic's unique data
+    const cacheKey = `${topic.category}/${topic.slug}`;
+    const contentHash = hashContent(
+      topic.title + topic.heading + topic.description + topic.content +
+      JSON.stringify(topic.faqs) + JSON.stringify(topic.relatedSlugs)
+    );
+
+    if (oldCache[cacheKey] === contentHash && existsSync(filePath)) {
+      // Page content unchanged and file exists — skip render + write
+      newCache[cacheKey] = contentHash;
+      skipped++;
       pageCount++;
+      continue;
     }
-    // Progress logging for large builds
-    if (TOPICS.length > 1000 && (i + batchSize) % 10000 === 0) {
-      console.log(`   📝 ${Math.min(i + batchSize, TOPICS.length)}/${TOPICS.length} pages...`);
-    }
+
+    newCache[cacheKey] = contentHash;
+    writeQueue.push({ topic, filePath });
   }
+
+  // Process writes in batches
+  const totalWrites = writeQueue.length;
+  let written = 0;
+
+  await processInBatches(writeQueue, WRITE_CONCURRENCY, async ({ topic, filePath }) => {
+    const html = renderTopicPage(topic);
+    await writePageAsync(filePath, html);
+    written++;
+    if (totalWrites > 1000 && written % 10000 === 0) {
+      console.log(`   📝 ${written}/${totalWrites} pages written...`);
+    }
+  });
 
   // 4. Sitemaps
   generateSitemaps();
@@ -88,6 +164,41 @@ export function generateSEOPages() {
   writePage(join(DIST, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /userscript/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 
   // 6. 404
+  writePage(join(DIST, '404.html'), render404Page());
+
+  // Save cache for next build
+  saveCache(newCache);
+
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  const skipMsg = skipped > 0 ? ` (${skipped} cached, ${totalWrites} written)` : '';
+  console.log(`✅ SEO: Generated ${pageCount} pages in ${elapsed}s${skipMsg}`);
+  return pageCount;
+}
+
+// Keep backward compat — sync wrapper
+export function generateSEOPagesSync() {
+  // Fallback for contexts that can't await
+  const t0 = Date.now();
+  validateTopics();
+  let pageCount = 0;
+
+  for (const cat of Object.values(CATEGORIES)) {
+    writePage(join(DIST, cat.slug, 'index.html'), renderHubPage(cat));
+    pageCount++;
+  }
+  for (const sub of Object.values(SUBCATEGORIES)) {
+    const topics = getTopicsBySubcategory(sub.slug);
+    if (topics.length > 0) {
+      writePage(join(DIST, sub.parent, sub.slug, 'index.html'), renderSubcategoryPage(sub, topics));
+      pageCount++;
+    }
+  }
+  for (const topic of TOPICS) {
+    writePage(join(DIST, topic.category, topic.slug, 'index.html'), renderTopicPage(topic));
+    pageCount++;
+  }
+  generateSitemaps();
+  writePage(join(DIST, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /userscript/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
   writePage(join(DIST, '404.html'), render404Page());
 
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
@@ -110,7 +221,6 @@ function generateSitemaps() {
     return;
   }
 
-  // Chunk into multiple sitemaps + index
   const chunks = [];
   for (let i = 0; i < urls.length; i += SITEMAP_LIMIT) {
     chunks.push(urls.slice(i, i + SITEMAP_LIMIT));
